@@ -65,23 +65,17 @@ table, th, td {
 </body>
 
 <script>
-  /**
-      Calculate who will win if everyone plays correctly at each given start n
-      */
+
+  // initial values
   var allMemos = [];
   var DEBUG = false;
   var _pileSize = 8192 * 2;
   var allowedMoves = [1, 2, 5];
 
-  function step2a_(moves, pileSize) {
-    let memos = isWin(moves, pileSize);
-    console.time("match patterns");
-    let pat = matchPattern(memos, moves[moves.length - 1]);
-    console.log(pat);
-    console.timeEnd("match patterns");
-    return Object.assign({ memos }, pat);
-  }
 
+  /**
+      Calculate who will win if everyone plays correctly at each given start n
+  */
   function isWin(moves, pileSize) {
     // console.time(`memoize nims`)
     var memos = [];
@@ -107,7 +101,9 @@ table, th, td {
   /**
       Match Pattern
       Search for repeating pattern using a slightly adapted version of the substring matching algorithm from last semester.
-      */
+      When the table fills out, there will be increasing rows to the right of the main diagonal.
+      Those rows represent the pattern, and one can find the offset and pattern length from them.
+  */
   function matchPattern(memosIn, maxMove) {
     let myMemos = new Uint32Array(memosIn);
     let len = myMemos.length;
@@ -127,8 +123,8 @@ table, th, td {
         }
       }
       // search for pattern
-      //   It Turns out that a repeating pattern apears as an accending diagonal in the table.
-      //   ??? is 2 times the max move good enough ???
+      //   It Turns out that a repeating pattern apears as an accending diagonal in the table, but not the main one.
+      //   ??? is 2 times the max move good enough of a match ???
       for (let k = i + 1; k < len; k++) {
         if (a2[k] >= 2 * maxMove) {
           let patternLength = k - i;
@@ -159,9 +155,22 @@ table, th, td {
     return;
   }
 
-  //
-  //  This is the part that looks for the longest pattern possible
-  //
+  /**
+    run isWin and find the pattern
+  */
+  function step2a_(moves, pileSize) {
+    let memos = isWin(moves, pileSize);
+    console.time("match patterns");
+    let pat = matchPattern(memos, moves[moves.length - 1]);
+    console.log(pat);
+    console.timeEnd("match patterns");
+    return Object.assign({ memos }, pat);
+  }
+
+  /** 
+   It is used for part 2b
+   This is the part that looks for the longest pattern possible
+  */
   var _bruteResults = [];
 
   function bruteForcePatternLookup(maxIterations, iteration = 0) {
@@ -205,11 +214,12 @@ table, th, td {
     if (iteration < maxIterations) {
       setTimeout(bruteForcePatternLookup, 10, maxIterations, iteration);
     }
-    updateBruteForce(_bruteResults);
+    renderBruteForce(_bruteResults);
   }
 
-  ////////
+  //////////////////
   // UI
+  //      Everything below is for User interface stuff.
   ////////
   function inputChanged(ev) {
     let vals;
@@ -228,10 +238,10 @@ table, th, td {
       console.error(err);
     }
     let res = step2a_(allowedMoves, _pileSize);
-    updateDisplay(res.memos, _pileSize, res);
+    renderMemos(res.memos, _pileSize, res);
   }
 
-  function updateDisplay(moves, pileSize, pattern) {
+  function renderMemos(moves, pileSize, pattern) {
     let winner = moves[pileSize] ? "won" : "lost";
     let markup = `
               After ${pileSize} moves, the 1st person ${winner}
@@ -259,7 +269,7 @@ table, th, td {
     document.getElementById("nimsMemos").innerHTML = markup;
   }
 
-  function updateBruteForce(results) {
+  function renderBruteForce(results) {
     let myResult = _bruteResults.sort((a, b) => {
       let t1 = 0 || b.patternLength;
       let t2 = 0 || a.patternLength;
@@ -283,7 +293,7 @@ table, th, td {
 
   document.body.onload = function() {
     let res = step2a_(allowedMoves, _pileSize);
-    updateDisplay(res.memos, _pileSize, res);
+    renderMemos(res.memos, _pileSize, res);
   };
   document.getElementById("inputMoves").oninput = inputChanged;
   document.getElementById("inputMoves").value = allowedMoves;
