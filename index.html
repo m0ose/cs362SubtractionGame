@@ -37,7 +37,7 @@ table, th, td {
 </style>
 </head>
 <body>
-    <div><h1>SubtractionGame. v1. One Pile</h1>
+    <div><h1>SubtractionGame. v2. One Pile</h1>
         <div>Cody Smith </div>
         <div>CS 342. Spring 2019</div>
     </div>
@@ -57,7 +57,7 @@ table, th, td {
         </div>
     </div>
     <div class="flex-item">
-        <button onclick="bruteForcePatternLookup(100000)">Brute force look for patterns</button>
+        <button onclick="bruteForcePatternLookup(10000000)">Brute force look for patterns</button>
         <div id='bruteForceResults'></div>
     </div>
    
@@ -178,7 +178,7 @@ table, th, td {
     orig = [...new Set(orig)]; //remove duplicaes
     //30,50,40, 54, 57, 1, 19, 38, 48, 54, 60, 61, 64, 8, 23, 24, 25, 32, 56, 61, 62, 16, 39, 51, 59, 63]
     // do a few iterations and then release the process so the ui doesn't crash
-    for (let i = 0; i < 200; i++) {
+    for (let i = 0; i < 100; i++) {
       let moves = orig.filter(() => {
         return Math.random() < 0.1;
       });
@@ -203,7 +203,7 @@ table, th, td {
     //console.timeEnd("brute force loop");
     // Call again with timeout. This will prevent the UI from locking up
     if (iteration < maxIterations) {
-      setTimeout(bruteForcePatternLookup, 1, maxIterations, iteration);
+      setTimeout(bruteForcePatternLookup, 10, maxIterations, iteration);
     }
     updateBruteForce(_bruteResults);
   }
@@ -238,8 +238,8 @@ table, th, td {
               <br>
           `;
     if (pattern.patternLength > 0) {
-      markup += `A pattern was found that lasted ${pattern.patternLength}
-              moves and started at move ${pattern.offset}`;
+      markup += `A pattern was found with a <b> period </b> of ${pattern.patternLength}
+              moves and an <b> offset </b> of ${pattern.offset} .`;
     }
     markup += "<hr>";
     for (var i = 0; i < 100; i++) {
