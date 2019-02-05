@@ -185,7 +185,7 @@ table, th, td {
       if (moves.length > 0) {
         let pat;
         let foundPattern = false;
-        for (var exp = 8; exp <= 17 && !foundPattern; exp++) {
+        for (var exp = 8; exp <= 20 && !foundPattern; exp++) {
           let memos = isWin(moves, 2 ** exp);
           pat = matchPattern(memos, moves[moves.length - 1]);
           if (!pat) {
