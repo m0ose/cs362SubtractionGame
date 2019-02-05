@@ -1,0 +1,295 @@
+<html>
+<head>
+<title>Subtraction Game 1 pile. v2</title>
+
+<style>
+table {
+  border-collapse: collapse;
+}
+
+table, th, td {
+  border: 1px solid black;
+  padding:4px;
+  background-color: lightgrey;
+}
+
+.win-true{
+    color: rgb(0, 23, 5)
+}
+.win-false{
+    color:rgb(187, 0, 0)
+}
+.inPattern{
+    background-color: rgb(153, 211, 255)
+}
+.container{
+    display: flex;
+}
+.fixed{
+    width: 400px;
+    border: 1px solid grey;
+}
+.flex-item{
+    flex-grow: 1;
+    border: 1px solid grey;
+}
+
+</style>
+</head>
+<body>
+    <div><h1>SubtractionGame. v1. One Pile</h1>
+        <div>Cody Smith </div>
+        <div>CS 342. Spring 2019</div>
+    </div>
+<hr>
+
+<div class="container">
+    <div class="fixed">
+                <div>
+                    Enter comma seperated allowed moved
+                        <input id='inputMoves' type=text width=40 />
+                    <br>
+                    Pile size:
+                        <input id='pileSize' type=number width=12 />
+                </div>
+                <hr>
+                <div id='nimsMemos'>
+        </div>
+    </div>
+    <div class="flex-item">
+        <button onclick="bruteForcePatternLookup(100000)">Brute force look for patterns</button>
+        <div id='bruteForceResults'></div>
+    </div>
+   
+</div>
+</body>
+
+<script>
+  /**
+      Calculate who will win if everyone plays correctly at each given start n
+      */
+  var allMemos = [];
+  var DEBUG = false;
+  var _pileSize = 8192 * 2;
+  var allowedMoves = [1, 2, 5];
+
+  function step2a_(moves, pileSize) {
+    let memos = isWin(moves, pileSize);
+    console.time("match patterns");
+    let pat = matchPattern(memos, moves[moves.length - 1]);
+    console.log(pat);
+    console.timeEnd("match patterns");
+    return Object.assign({ memos }, pat);
+  }
+
+  function isWin(moves, pileSize) {
+    // console.time(`memoize nims`)
+    var memos = [];
+    moves = moves.sort((a, b) => {
+      return a - b;
+    });
+    if (allMemos[moves]) memos = allMemos[moves];
+    else allMemos[moves] = memos;
+    for (let i = memos.length; i <= pileSize; i++) {
+      let canWin = false;
+      for (let m of moves) {
+        let nextPos = i - m;
+        if (nextPos == 0 || memos[nextPos] === false) {
+          canWin = true;
+        }
+      }
+      memos[i] = canWin;
+    }
+    // console.timeEnd(`memoize nims`)
+    return memos;
+  }
+
+  /**
+      Match Pattern
+      Search for repeating pattern using a slightly adapted version of the substring matching algorithm from last semester.
+      */
+  function matchPattern(memosIn, maxMove) {
+    let myMemos = new Uint32Array(memosIn);
+    let len = myMemos.length;
+    let a1 = new Uint32Array(len);
+    let a2 = new Uint32Array(len);
+    let tab = [];
+    for (let i = 0; i < len; i++) {
+      for (let j = 0; j < len; j++) {
+        if (myMemos[i] == myMemos[j]) {
+          if (j == 0) {
+            a2[j] = 1;
+          } else {
+            a2[j] = a1[j - 1] + 1;
+          }
+        } else {
+          a2[j] = 0;
+        }
+      }
+      // search for pattern
+      //   It Turns out that a repeating pattern apears as an accending diagonal in the table.
+      //   ??? is 2 times the max move good enough ???
+      for (let k = i + 1; k < len; k++) {
+        if (a2[k] >= 2 * maxMove) {
+          let patternLength = k - i;
+          let subArray = myMemos.subarray(k - patternLength, k);
+          let offset = i - a2[k] + 1;
+          if (DEBUG) {
+            console.log("possible pattern at", {
+              k,
+              i,
+              "i-a2[k]+1": i - a2[k] + 1,
+              patternLength: patternLength,
+              "a2[k]": a2[k],
+              subArray
+            });
+            console.table(tab);
+          }
+          return { patternLength, subArray, offset };
+        }
+      }
+      //
+      //swap a1 and a2
+      let tmp = a2;
+      a2 = a1;
+      a1 = tmp;
+      //
+      if (DEBUG) tab.push(new Uint32Array(a2));
+    }
+    return;
+  }
+
+  //
+  //  This is the part that looks for the longest pattern possible
+  //
+  var _bruteResults = [];
+
+  function bruteForcePatternLookup(maxIterations, iteration = 0) {
+    //console.time("brute force loop");
+    let orig = Array.from(Array(64).keys()).map(a => a + 1);
+    // make it more likely to get primes and squares
+    let primes = [1,2,3,5,7,11,13,17,19,23,29,31,37,41,43,47,53,59,61];
+    let squares = [2, 4, 8, 16, 32, 3, 9, 27, 5, 25, 7, 49, 64];
+    orig = orig
+      .concat(primes)
+      .concat(squares)
+      .concat(primes)
+      .concat(squares);
+    orig = [...new Set(orig)]; //remove duplicaes
+    //30,50,40, 54, 57, 1, 19, 38, 48, 54, 60, 61, 64, 8, 23, 24, 25, 32, 56, 61, 62, 16, 39, 51, 59, 63]
+    // do a few iterations and then release the process so the ui doesn't crash
+    for (let i = 0; i < 200; i++) {
+      let moves = orig.filter(() => {
+        return Math.random() < 0.1;
+      });
+      if (moves.length > 0) {
+        let pat;
+        let foundPattern = false;
+        for (var exp = 8; exp <= 17 && !foundPattern; exp++) {
+          let memos = isWin(moves, 2 ** exp);
+          pat = matchPattern(memos, moves[moves.length - 1]);
+          if (!pat) {
+            if (exp > 15) console.log("didnt find pattern:", 2 ** exp, moves);
+          } else {
+            foundPattern = true;
+            _bruteResults.push(Object.assign({ moves, patternLength: 0 }, pat));
+          }
+        }
+      }
+      //console.log(moves, pat)
+      iteration++;
+    }
+    console.log("iteration", iteration);
+    //console.timeEnd("brute force loop");
+    // Call again with timeout. This will prevent the UI from locking up
+    if (iteration < maxIterations) {
+      setTimeout(bruteForcePatternLookup, 1, maxIterations, iteration);
+    }
+    updateBruteForce(_bruteResults);
+  }
+
+  ////////
+  // UI
+  ////////
+  function inputChanged(ev) {
+    let vals;
+    try {
+      _pileSize = Number(document.getElementById("pileSize").value);
+      let valIn = document.getElementById("inputMoves").value; //ev.target.value
+      vals = valIn
+        .split(",")
+        .map(n => {
+          return Math.round(Number(n));
+        })
+        .filter(n => n > 0);
+      allowedMoves = vals;
+      console.log(vals);
+    } catch (err) {
+      console.error(err);
+    }
+    let res = step2a_(allowedMoves, _pileSize);
+    updateDisplay(res.memos, _pileSize, res);
+  }
+
+  function updateDisplay(moves, pileSize, pattern) {
+    let winner = moves[pileSize] ? "won" : "lost";
+    let markup = `
+              After ${pileSize} moves, the 1st person ${winner}
+              <br>
+          `;
+    if (pattern.patternLength > 0) {
+      markup += `A pattern was found that lasted ${pattern.patternLength}
+              moves and started at move ${pattern.offset}`;
+    }
+    markup += "<hr>";
+    for (var i = 0; i < 100; i++) {
+      let classes = `win-${moves[i]}`;
+      let patClass = "";
+      if (i >= pattern.offset && i < pattern.offset + pattern.patternLength) {
+        patClass = "inPattern";
+      }
+      markup += `
+                  <tr>
+                  <th class="${patClass}">${i}</th>
+                  <th class="${classes} ${patClass}">${moves[i]}</th>
+                  </tr>`;
+    }
+
+    markup = `<table><tr><td>Move number</td><td>Win?</td></tr>${markup}</table>`;
+    document.getElementById("nimsMemos").innerHTML = markup;
+  }
+
+  function updateBruteForce(results) {
+    let myResult = _bruteResults.sort((a, b) => {
+      let t1 = 0 || b.patternLength;
+      let t2 = 0 || a.patternLength;
+      return t1 - t2;
+    });
+    let inner = "";
+    for (var i = 0; i < 6 && i < myResult.length; i++) {
+      let res = myResult[i];
+      inner += `
+                  <tr>
+                  <th >${JSON.stringify(res.moves, 0, 2)}</th>
+                  <th >${res.patternLength}</th>
+                  <th >${res.offset}</th>
+                  </tr>`;
+    }
+    let markup = `<table><tr><td>moves</td><td>pattern length</td><td>offset</td></tr>${inner}</table>`;
+    if (markup != document.getElementById("bruteForceResults").innerHTML){
+      document.getElementById("bruteForceResults").innerHTML = markup;
+    }
+  }
+
+  document.body.onload = function() {
+    let res = step2a_(allowedMoves, _pileSize);
+    updateDisplay(res.memos, _pileSize, res);
+  };
+  document.getElementById("inputMoves").oninput = inputChanged;
+  document.getElementById("inputMoves").value = allowedMoves;
+  document.getElementById("pileSize").oninput = inputChanged;
+  document.getElementById("pileSize").value = _pileSize;
+
+
+</script>
+</html>
