@@ -57,8 +57,17 @@ table, th, td {
         </div>
     </div>
     <div class="flex-item">
+        Warning: this button will lock up your computer
+        <br>
         <button onclick="bruteForcePatternLookup(10000000)">Brute force look for patterns</button>
         <div id='bruteForceResults'></div>
+        <hr>
+        <div id='playComputer'>
+          <div>Play the computer</div>
+          <input type='number' id='playAmount'></input>
+          <button onclick='playMove()'>play</button>
+          <div id='playMessage'></div>
+        </div>
     </div>
    
 </div>
@@ -173,23 +182,31 @@ table, th, td {
   */
   var _bruteResults = [];
 
+  function randishInt(){
+    return Math.ceil(Math.random()* 10);
+  }
+
   function bruteForcePatternLookup(maxIterations, iteration = 0) {
     //console.time("brute force loop");
-    let orig = Array.from(Array(64).keys()).map(a => a + 1);
-    // make it more likely to get primes and squares
-    let primes = [1,2,3,5,7,11,13,17,19,23,29,31,37,41,43,47,53,59,61];
-    let squares = [2, 4, 8, 16, 32, 3, 9, 27, 5, 25, 7, 49, 64];
-    orig = orig
-      .concat(primes)
-      .concat(squares)
-      .concat(primes)
-      .concat(squares);
-    orig = [...new Set(orig)]; //remove duplicaes
+    // let orig = Array.from(Array(64).keys()).map(a => a + 1);
+    // // make it more likely to get primes and squares
+    // let primes = [1,2,3,5,7,11,13,17,19,23,29,31,37,41,43,47,53,59,61];
+    // let squares = [2, 4, 8, 16, 32, 3, 9, 27, 5, 25, 7, 49, 64];
+    // orig = orig
+    //   .concat(primes)
+    //   .concat(squares)
+    //   .concat(primes)
+    //   .concat(squares);
+    // orig = [...new Set(orig)]; //remove duplicaes
+    let orig=[]
+    for (var i=randishInt(); i<=64; i+=randishInt()){
+      orig.push(i)
+    }
     //30,50,40, 54, 57, 1, 19, 38, 48, 54, 60, 61, 64, 8, 23, 24, 25, 32, 56, 61, 62, 16, 39, 51, 59, 63]
     // do a few iterations and then release the process so the ui doesn't crash
-    for (let i = 0; i < 100; i++) {
+    for (let i = 0; i < 30; i++) {
       let moves = orig.filter(() => {
-        return Math.random() < 0.1;
+        return Math.random() < 0.6;
       });
       if (moves.length > 0) {
         let pat;
@@ -291,9 +308,52 @@ table, th, td {
     }
   }
 
+  var playPiecesLeft = 25
+  function playMove() {
+    let msg = document.getElementById('playMessage')
+    let amount = Math.round(Number(document.getElementById('playAmount').value))
+    if (allowedMoves.indexOf(amount) < 0) {
+      msg.innerHTML = `You can't play ${amount} . Only ${JSON.stringify(allowedMoves)} are allowed`
+      return
+    }
+    if (playPiecesLeft - amount < 0) {
+      msg.innerHTML = `cant play that`
+      return
+    }
+    if (playPiecesLeft - amount == 0) {
+      msg.innerHTML = `You win`
+      return
+    }
+    playPiecesLeft = playPiecesLeft - amount
+    let moves = isWin(allowedMoves, playPiecesLeft)
+    for (var i of allowedMoves) {
+      let indwx = playPiecesLeft - i
+      if (indwx == 0) {
+        msg.innerHTML = 'Computer wins'
+        return
+      }
+      if (moves[indwx] == false) {
+        playPiecesLeft = playPiecesLeft - i
+        msg.innerHTML = `Your move, there are ${playPiecesLeft} left`
+        return
+      }
+    }
+    // i guess the comuter still needs to play
+    let aMove = allowedMoves[0]
+    if(playPiecesLeft - aMove<0) {
+      playPiecesLeft = playPiecesLeft - aMove
+      msg.innerHTML = `Your won`
+      return
+    } else {
+      playPiecesLeft = playPiecesLeft - aMove
+      msg.innerHTML = `Your turn, there are ${playPiecesLeft} left`
+    }
+  }
+
   document.body.onload = function() {
     let res = step2a_(allowedMoves, _pileSize);
     renderMemos(res.memos, _pileSize, res);
+    document.getElementById('playMessage').innerHTML = `there are ${playPiecesLeft} pieces`
   };
   document.getElementById("inputMoves").oninput = inputChanged;
   document.getElementById("inputMoves").value = allowedMoves;
